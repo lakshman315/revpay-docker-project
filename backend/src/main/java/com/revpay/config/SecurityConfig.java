@@ -43,7 +43,7 @@ public class SecurityConfig {
         return authConfig.getAuthenticationManager();
     }
 
-    // ✅ CORS Configuration
+    // ✅ CORS configuration
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
 
@@ -52,7 +52,10 @@ public class SecurityConfig {
         configuration.setAllowedOriginPatterns(List.of("*"));
         configuration.setAllowedMethods(List.of("GET","POST","PUT","DELETE","PATCH","OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowCredentials(true);
+
+        // ❗ Important: must be false when using "*"
+        configuration.setAllowCredentials(false);
+
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -61,7 +64,6 @@ public class SecurityConfig {
         return source;
     }
 
-    // ✅ JWT Filter Bean
     @Bean
     public JwtAuthenticationFilter authenticationJwtTokenFilter(
             JwtUtils jwtUtils,
@@ -70,7 +72,6 @@ public class SecurityConfig {
         return new JwtAuthenticationFilter(jwtUtils, userDetailsService);
     }
 
-    // ✅ Security Filter Chain
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
                                            JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
@@ -82,17 +83,15 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
 
-                        // ✅ Allow CORS preflight requests
+                        // allow preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // Swagger
                         .requestMatchers(
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
 
-                        // Public Auth APIs
                         .requestMatchers(
                                 "/api/v1/auth/register",
                                 "/api/v1/auth/login",

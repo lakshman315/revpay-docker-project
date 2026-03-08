@@ -30,7 +30,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    // Constructor injection for better testability and immutability
     private final JwtAuthenticationEntryPoint unauthorizedHandler;
 
     @Bean
@@ -45,65 +44,56 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+
         CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(List.of(
-                "http://localhost:4200",
-                "http://16.171.39.237"
-        ));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-
-        // CRITICAL FIX: Added "Idempotency-Key" so the frontend can send it without CORS blocking
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Idempotency-Key"));
+        configuration.setAllowedOriginPatterns(List.of("*"));
+        configuration.setAllowedMethods(List.of("*"));
+        configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
-
-        // Added caching for preflight requests (improves frontend performance)
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
+
         return source;
     }
 
-    // FIXED: Only keeping the correct bean with the required parameters
     @Bean
-    public JwtAuthenticationFilter authenticationJwtTokenFilter(JwtUtils jwtUtils, UserDetailsService userDetailsService) {
+    public JwtAuthenticationFilter authenticationJwtTokenFilter(
+            JwtUtils jwtUtils,
+            UserDetailsService userDetailsService
+    ) {
         return new JwtAuthenticationFilter(jwtUtils, userDetailsService);
     }
 
-    // FIXED: Inject the customized JwtAuthenticationFilter directly into the filterChain method
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http,
+                                           JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
 
         http
                 .csrf(csrf -> csrf.disable())
-                .cors(Customizer.withDefaults()) // Hooks into the CorsConfigurationSource bean above
+                .cors(Customizer.withDefaults())
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+
                         .requestMatchers(
                                 "/v3/api-docs/**",
-                                "/v3/api-docs",
                                 "/swagger-ui/**",
-                                "/swagger-ui.html",
-                                "/swagger-ui/index.html",
-                                "/v3/api-docs/swagger-config"
+                                "/swagger-ui.html"
                         ).permitAll()
 
-                        // FIXED: Added /v1/ to match your actual controller endpoints!
                         .requestMatchers(
                                 "/api/v1/auth/register",
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/forgot-password",
                                 "/api/v1/auth/reset-password"
                         ).permitAll()
-                        .requestMatchers("/api/v1/public/**").permitAll()
 
-                        // Everything else must be secured with a JWT
                         .anyRequest().authenticated()
                 );
 
-        // Inject our custom JWT filter before the standard Spring Username/Password filter
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

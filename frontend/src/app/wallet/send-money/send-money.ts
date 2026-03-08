@@ -23,7 +23,7 @@ export class SendMoneyComponent {
     if (this.sendForm.valid) {
       const payload = {
         ...this.sendForm.value,
-        idempotencyKey: crypto.randomUUID()
+       idempotencyKey: Math.random().toString(36).substring(2)
       };
       this.walletService.sendMoney(payload).subscribe({
         next: () => { alert('Money sent successfully'); this.sendForm.reset(); },

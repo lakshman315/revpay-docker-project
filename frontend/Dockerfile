@@ -12,6 +12,10 @@ RUN npm run build
 # Stage 2: Serve with Nginx
 FROM nginx:alpine
 
+# Copy nginx config (for Angular routing)
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Copy Angular build files
 COPY --from=build /app/dist/*/browser /usr/share/nginx/html
 
 EXPOSE 80

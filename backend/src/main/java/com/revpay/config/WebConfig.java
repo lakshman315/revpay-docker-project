@@ -18,7 +18,10 @@ public class WebConfig implements WebMvcConfigurer {
         // Note for Phase 3: Externalize "http://localhost:4200" to application.yml
         // so it can dynamically change in staging/production environments.
         registry.addMapping("/**")
-                .allowedOrigins("http://localhost:4200")
+                .allowedOrigins(
+                        "http://localhost:4200",
+                        "http://16.171.39.237"
+                )
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true)
